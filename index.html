@@ -156,12 +156,22 @@
         }
         
         // 星星缓慢旋转
-        const rotation = Date.now() * 0.001;
-        const rotateX = Math.cos(rotation + star.originalX * 0.01) * 0.5;
-        const rotateY = Math.sin(rotation + star.originalY * 0.01) * 0.5;
-        
-        star.element.style.left = (star.x + rotateX) + 'px';
-        star.element.style.top = (star.y + rotateY) + 'px';
+        // 整个星空围绕屏幕中心旋转
+        const rotation = Date.now() * 0.005; // 调整这个值来控制旋转速度
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        // 计算星星相对于中心的位置
+        const relativeX = star.x - centerX;
+        const relativeY = star.y - centerY;
+
+        // 应用旋转变换
+        const rotatedX = relativeX * Math.cos(rotation) - relativeY * Math.sin(rotation);
+        const rotatedY = relativeX * Math.sin(rotation) + relativeY * Math.cos(rotation);
+
+        // 转换回屏幕坐标
+        star.element.style.left = (centerX + rotatedX) + 'px';
+        star.element.style.top = (centerY + rotatedY) + 'px';
       });
       
       requestAnimationFrame(animate);
