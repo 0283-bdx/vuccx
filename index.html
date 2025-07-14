@@ -35,6 +35,7 @@
       border-radius: 50%;
       opacity: 0.8;
       animation: twinkle 3s infinite;
+      transition: transform 0.1s ease-out;
     }
     
     @keyframes twinkle {
@@ -80,131 +81,254 @@
       border-radius: 10px;
       margin-bottom: 2rem;
     }
+
+    .loading {
+      text-align: center;
+      opacity: 0.7;
+    }
+
+    .error {
+      color: #ff6b6b;
+      background: rgba(255, 107, 107, 0.1);
+      padding: 1rem;
+      border-radius: 5px;
+      border: 1px solid rgba(255, 107, 107, 0.3);
+    }
   </style>
 </head>
 <body>
   <div class="starfield" id="starfield"></div>
   
   <h1>📘 Markdown 页面</h1>
-  <div id="content">正在加载内容...</div>
+  <div id="content" class="loading">正在加载内容...</div>
 
   <script>
-    // 星空背景脚本
-    const starfield = document.getElementById('starfield');
-    const stars = [];
-    const numStars = 450;
-    let mouseX = 0;
-    let mouseY = 0;
+    // 星空管理类
+    class StarField {
+      constructor() {
+        this.container = document.getElementById('starfield');
+        this.stars = [];
+        this.numStars = Math.min(300, Math.floor(window.innerWidth * window.innerHeight / 8000)); // 根据屏幕大小动态调整
+        this.mouse = { x: 0, y: 0 };
+        this.animationId = null;
+        this.lastTime = 0;
+        
+        this.init();
+        this.bindEvents();
+        this.animate();
+      }
 
-    // 创建星星
-    function createStar() {
-      const star = document.createElement('div');
-      star.className = 'star';
-      
-      const size = Math.random() * 3 + 1;
-      star.style.width = size + 'px';
-      star.style.height = size + 'px';
-      
-      // 在屏幕外也生成星星，防止旋转时出现空白
-      const margin = 300; // 额外的边距
-      star.style.left = (Math.random() * (window.innerWidth + margin * 2) - margin) + 'px';
-      star.style.top = (Math.random() * (window.innerHeight + margin * 2) - margin) + 'px';
-
-      // 随机化闪烁动画延迟
-      star.style.animationDelay = Math.random() * 3 + 's';
-      
-      starfield.appendChild(star);
-      
-      return {
-        element: star,
-        x: parseFloat(star.style.left),
-        y: parseFloat(star.style.top),
-        originalX: parseFloat(star.style.left),
-        originalY: parseFloat(star.style.top),
-        size: size
-      };
-    }
-
-    // 初始化星空
-    for (let i = 0; i < numStars; i++) {
-      stars.push(createStar());
-    }
-
-    // 鼠标移动事件
-    document.addEventListener('mousemove', (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-    });
-
-    // 动画循环
-    function animate() {
-      stars.forEach(star => {
-        // 计算星星与鼠标的距离（基于原始位置，不是旋转后的位置）
-        const dx = mouseX - star.x;
-        const dy = mouseY - star.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-
-        // 如果距离小于150像素，星星会被牵引
-        if (distance < 150) {
-          const force = (150 - distance) / 150;
-          const pullX = dx * force * 0.1;
-          const pullY = dy * force * 0.1;
-  
-          star.x += pullX;
-          star.y += pullY;
-        } else {
-          // 星星缓慢回到原位
-          star.x += (star.originalX - star.x) * 0.02;
-          star.y += (star.originalY - star.y) * 0.02;
+      init() {
+        // 清空现有星星
+        this.container.innerHTML = '';
+        this.stars = [];
+        
+        // 创建星星
+        for (let i = 0; i < this.numStars; i++) {
+          this.stars.push(this.createStar());
         }
+      }
 
-        // 星星缓慢旋转
-        // 整个星空围绕屏幕中心旋转
-        const rotation = Date.now() * 0.0001; // 调整这个值来控制旋转速度
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
+      createStar() {
+        const star = document.createElement('div');
+        star.className = 'star';
+        
+        const size = Math.random() * 2 + 1;
+        star.style.width = size + 'px';
+        star.style.height = size + 'px';
+        
+        // 确保星星在屏幕范围内
+        const margin = 100;
+        const x = Math.random() * (window.innerWidth + margin * 2) - margin;
+        const y = Math.random() * (window.innerHeight + margin * 2) - margin;
+        
+        star.style.left = x + 'px';
+        star.style.top = y + 'px';
+        star.style.animationDelay = Math.random() * 3 + 's';
+        
+        this.container.appendChild(star);
+        
+        return {
+          element: star,
+          x: x,
+          y: y,
+          originalX: x,
+          originalY: y,
+          size: size
+        };
+      }
 
-        // 计算星星相对于中心的位置
-        const relativeX = star.x - centerX;
-        const relativeY = star.y - centerY;
+      bindEvents() {
+        // 鼠标移动事件 - 使用节流
+        let mouseMoveTimeout;
+        document.addEventListener('mousemove', (e) => {
+          if (mouseMoveTimeout) return;
+          mouseMoveTimeout = setTimeout(() => {
+            this.mouse.x = e.clientX;
+            this.mouse.y = e.clientY;
+            mouseMoveTimeout = null;
+          }, 16); // 约60fps
+        });
 
-        // 应用旋转变换
-        const rotatedX = relativeX * Math.cos(rotation) - relativeY * Math.sin(rotation);
-        const rotatedY = relativeX * Math.sin(rotation) + relativeY * Math.cos(rotation);
+        // 窗口大小调整事件 - 使用防抖
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            this.handleResize();
+          }, 250);
+        });
+      }
 
-        // 转换回屏幕坐标
-        star.element.style.left = (centerX + rotatedX) + 'px';
-        star.element.style.top = (centerY + rotatedY) + 'px';
-      });
-      
-      requestAnimationFrame(animate);
+      handleResize() {
+        // 重新计算星星数量
+        const newNumStars = Math.min(300, Math.floor(window.innerWidth * window.innerHeight / 8000));
+        if (newNumStars !== this.numStars) {
+          this.numStars = newNumStars;
+          this.init();
+        } else {
+          // 只重新定位现有星星
+          this.stars.forEach(star => {
+            const margin = 100;
+            star.originalX = Math.random() * (window.innerWidth + margin * 2) - margin;
+            star.originalY = Math.random() * (window.innerHeight + margin * 2) - margin;
+            star.x = star.originalX;
+            star.y = star.originalY;
+          });
+        }
+      }
+
+      animate = (currentTime) => {
+        try {
+          if (currentTime - this.lastTime < 16) { // 限制帧率到60fps
+            this.animationId = requestAnimationFrame(this.animate);
+            return;
+          }
+          
+          this.lastTime = currentTime;
+          
+          const centerX = window.innerWidth / 2;
+          const centerY = window.innerHeight / 2;
+          const rotation = currentTime * 0.00005; // 使用currentTime获得更平滑的旋转
+          
+          this.stars.forEach(star => {
+            // 鼠标牵引效果
+            const dx = this.mouse.x - star.x;
+            const dy = this.mouse.y - star.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < 120) {
+              const force = (120 - distance) / 120;
+              const pullX = dx * force * 0.08;
+              const pullY = dy * force * 0.08;
+              
+              star.x += pullX;
+              star.y += pullY;
+            } else {
+              // 缓慢回到原位
+              star.x += (star.originalX - star.x) * 0.015;
+              star.y += (star.originalY - star.y) * 0.015;
+            }
+
+            // 边界检查
+            const margin = 50;
+            star.x = Math.max(-margin, Math.min(window.innerWidth + margin, star.x));
+            star.y = Math.max(-margin, Math.min(window.innerHeight + margin, star.y));
+
+            // 应用旋转变换
+            const relativeX = star.x - centerX;
+            const relativeY = star.y - centerY;
+            const rotatedX = relativeX * Math.cos(rotation) - relativeY * Math.sin(rotation);
+            const rotatedY = relativeX * Math.sin(rotation) + relativeY * Math.cos(rotation);
+
+            star.element.style.transform = `translate(${rotatedX}px, ${rotatedY}px)`;
+          });
+          
+          this.animationId = requestAnimationFrame(this.animate);
+        } catch (error) {
+          console.error('动画错误:', error);
+          // 重新启动动画
+          setTimeout(() => {
+            this.animationId = requestAnimationFrame(this.animate);
+          }, 1000);
+        }
+      }
+
+      destroy() {
+        if (this.animationId) {
+          cancelAnimationFrame(this.animationId);
+        }
+        this.container.innerHTML = '';
+        this.stars = [];
+      }
     }
 
-    animate();
+    // 内容加载管理
+    class ContentLoader {
+      constructor() {
+        this.contentEl = document.getElementById('content');
+        this.loadContent();
+      }
 
-    // 窗口大小调整时重新定位星星
-    window.addEventListener('resize', () => {
-      const margin = 200;
-      stars.forEach(star => {
-        // 重新随机分布星星
-        star.originalX = Math.random() * (window.innerWidth + margin * 2) - margin;
-        star.originalY = Math.random() * (window.innerHeight + margin * 2) - margin;
-        star.x = star.originalX;
-        star.y = star.originalY;
-      });
+      async loadContent() {
+        try {
+          const response = await fetch('a01.md');
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+          
+          const mdContent = await response.text();
+          
+          if (typeof marked === 'undefined') {
+            throw new Error('Marked 库未正确加载');
+          }
+          
+          this.contentEl.innerHTML = marked.parse(mdContent);
+          this.contentEl.classList.remove('loading');
+          
+        } catch (error) {
+          console.error('内容加载失败:', error);
+          this.showError(error);
+        }
+      }
+
+      showError(error) {
+        this.contentEl.classList.remove('loading');
+        this.contentEl.classList.add('error');
+        
+        let errorMessage = '❌ 无法加载内容';
+        
+        if (error.message.includes('HTTP 404')) {
+          errorMessage = '❌ 找不到 a01.md 文件，请确认文件路径正确';
+        } else if (error.message.includes('Marked')) {
+          errorMessage = '❌ Markdown 解析器加载失败';
+        } else if (error.message.includes('Failed to fetch')) {
+          errorMessage = '❌ 网络请求失败，请检查网络连接';
+        }
+        
+        this.contentEl.innerHTML = `
+          <div class="error">
+            ${errorMessage}
+            <br><br>
+            <details>
+              <summary>错误详情</summary>
+              <pre>${error.message}</pre>
+            </details>
+          </div>
+        `;
+      }
+    }
+
+    // 应用初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      try {
+        new StarField();
+        new ContentLoader();
+      } catch (error) {
+        console.error('应用初始化失败:', error);
+      }
     });
-
-
-    // 原有的 Markdown 加载脚本
-    fetch('a01.md')
-      .then(res => res.text())
-      .then(md => {
-        document.getElementById('content').innerHTML = marked.parse(md);
-      })
-      .catch(err => {
-        document.getElementById('content').innerText = '❌ 无法加载 md 文件。';
-        console.error(err);
-      });
   </script>
 </body>
 </html>
