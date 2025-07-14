@@ -92,7 +92,7 @@
     // 星空背景脚本
     const starfield = document.getElementById('starfield');
     const stars = [];
-    const numStars = 300;
+    const numStars = 450;
     let mouseX = 0;
     let mouseY = 0;
 
@@ -106,7 +106,7 @@
       star.style.height = size + 'px';
       
       // 在屏幕外也生成星星，防止旋转时出现空白
-      const margin = 200; // 额外的边距
+      const margin = 300; // 额外的边距
       star.style.left = (Math.random() * (window.innerWidth + margin * 2) - margin) + 'px';
       star.style.top = (Math.random() * (window.innerHeight + margin * 2) - margin) + 'px';
 
@@ -139,17 +139,17 @@
     // 动画循环
     function animate() {
       stars.forEach(star => {
-        // 计算星星与鼠标的距离
+        // 计算星星与鼠标的距离（基于原始位置，不是旋转后的位置）
         const dx = mouseX - star.x;
         const dy = mouseY - star.y;
         const distance = Math.sqrt(dx * dx + dy * dy);
-        
+
         // 如果距离小于150像素，星星会被牵引
         if (distance < 150) {
           const force = (150 - distance) / 150;
           const pullX = dx * force * 0.1;
           const pullY = dy * force * 0.1;
-          
+  
           star.x += pullX;
           star.y += pullY;
         } else {
@@ -157,7 +157,7 @@
           star.x += (star.originalX - star.x) * 0.02;
           star.y += (star.originalY - star.y) * 0.02;
         }
-        
+
         // 星星缓慢旋转
         // 整个星空围绕屏幕中心旋转
         const rotation = Date.now() * 0.0001; // 调整这个值来控制旋转速度
