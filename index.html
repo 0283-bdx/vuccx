@@ -135,6 +135,9 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
     this.attractedStars = new Set();
     this.hoverStartTime = 0;
     this.consumedStarsCount = 0;
+    // 添加记录黑洞初始位置的变量
+    this.blackHoleOriginX = 0;
+    this.blackHoleOriginY = 0;
     
     this.init();
     this.bindEvents();
@@ -187,14 +190,17 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
       this.mouse.x = e.clientX;
       this.mouse.y = e.clientY;
       
-      // 检测鼠标是否移动了足够的距离
-      const mouseMoved = Math.sqrt(
-        Math.pow(this.mouse.x - this.mouse.lastX, 2) + 
-        Math.pow(this.mouse.y - this.mouse.lastY, 2)
-      ) > 5;
-      
-      if (mouseMoved) {
-        this.resetBlackHole();
+      // 检测黑洞是否距离初始位置过远
+      if (this.blackHoleActive) {
+        const distanceFromOrigin = Math.sqrt(
+          Math.pow(this.mouse.x - this.blackHoleOriginX, 2) + 
+          Math.pow(this.mouse.y - this.blackHoleOriginY, 2)
+        );
+        
+        // 当距离超过阈值（例如100像素）时重置黑洞
+        if (distanceFromOrigin > 100) {
+          this.resetBlackHole();
+        }
       }
       
       // 确保鼠标在页面内
@@ -234,6 +240,10 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
     if (this.blackHole) {
       this.container.removeChild(this.blackHole);
     }
+    
+    // 记录黑洞创建时的位置
+    this.blackHoleOriginX = this.mouse.x;
+    this.blackHoleOriginY = this.mouse.y;
     
     this.blackHole = document.createElement('div');
     this.blackHole.className = 'black-hole';
