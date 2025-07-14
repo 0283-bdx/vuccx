@@ -2,6 +2,7 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>YUYUE的个人网界</title>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style> 
@@ -9,7 +10,7 @@
       max-width: 800px;
       margin: 2rem auto;
       padding: 1rem;
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       line-height: 1.6;
       color: #fff;
       background: #000;
@@ -34,6 +35,7 @@
       opacity: 0.8;
       animation: twinkle 3s infinite;
       transition: opacity 0.3s ease;
+      will-change: transform, opacity;
     }
     
     @keyframes twinkle {
@@ -48,6 +50,7 @@
       z-index: 1;
       transition: all 0.3s ease-out;
       animation: blackHolePulse 2s infinite ease-in-out;
+      box-shadow: 0 0 30px 10px rgba(75, 0, 130, 0.3);
     }
     
     .black-hole::before {
@@ -130,6 +133,13 @@
       border: 1px solid rgba(255, 255, 255, 0.1);
       position: relative;
       z-index: 1;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      transition: all 0.3s ease;
+    }
+    
+    #content:hover {
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 6px 30px rgba(75, 0, 130, 0.3);
     }
     
     pre { 
@@ -138,6 +148,7 @@
       overflow-x: auto; 
       border-radius: 5px;
       color: #fff;
+      border-left: 3px solid rgba(148, 0, 211, 0.5);
     }
     
     code { 
@@ -145,6 +156,7 @@
       padding: 0.2rem 0.4rem; 
       border-radius: 3px;
       color: #fff;
+      font-family: 'Fira Code', 'Courier New', monospace;
     }
     
     h1, h2, h3 { 
@@ -158,11 +170,36 @@
       padding: 1rem;
       border-radius: 10px;
       margin-bottom: 2rem;
+      text-shadow: 0 0 10px rgba(148, 0, 211, 0.7);
+      transition: all 0.3s ease;
+    }
+
+    h1:hover {
+      background: rgba(255, 255, 255, 0.15);
+      text-shadow: 0 0 15px rgba(148, 0, 211, 1);
     }
 
     .loading {
       text-align: center;
       opacity: 0.7;
+      padding: 2rem;
+    }
+
+    .loading::after {
+      content: "";
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #fff;
+      animation: spin 1s infinite linear;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
     }
 
     .error {
@@ -172,10 +209,84 @@
       border-radius: 5px;
       border: 1px solid rgba(255, 107, 107, 0.3);
     }
+
+    a {
+      color: #bb86fc;
+      text-decoration: none;
+      border-bottom: 1px dotted rgba(187, 134, 252, 0.5);
+      transition: all 0.2s ease;
+    }
+
+    a:hover {
+      color: #d7b8ff;
+      border-bottom-color: #d7b8ff;
+    }
+
+    blockquote {
+      border-left: 4px solid rgba(148, 0, 211, 0.5);
+      margin-left: 0;
+      padding-left: 1rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* 响应式设计 */
+    @media (max-width: 850px) {
+      body {
+        margin: 1rem;
+        padding: 0.5rem;
+      }
+      
+      #content {
+        padding: 1.5rem;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+        padding: 0.75rem;
+      }
+    }
+
+    @media (max-width: 600px) {
+      body {
+        margin: 0.5rem;
+      }
+      
+      #content {
+        padding: 1rem;
+      }
+      
+      pre {
+        font-size: 0.9rem;
+      }
+      
+      .stats {
+        display: none;
+      }
+    }
+
+    /* 星星计数器 */
+    .stats {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: rgba(255, 255, 255, 0.7);
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 0.8rem;
+      z-index: 10;
+      transition: opacity 0.3s ease;
+      opacity: 0.5;
+    }
+
+    .stats:hover {
+      opacity: 1;
+    }
   </style>
 </head>
 <body>
   <div class="starfield" id="starfield"></div>
+  <div class="stats" id="stats">星星: <span id="starCount">0</span> 黑洞: <span id="blackHoleCount">0</span></div>
   
   <h1>📘 Markdown 页面</h1>
   <div id="content" class="loading">正在加载内容...</div>
@@ -185,11 +296,11 @@
       constructor() {
         this.container = document.getElementById('starfield');
         this.stars = [];
-        this.numStars = 400;
+        this.numStars = window.innerWidth < 600 ? 200 : 400; // 响应式星星数量
         this.mouse = { x: 0, y: 0, lastX: 0, lastY: 0 };
         this.mouseInPage = true;
         this.animationId = null;
-        this.lastTime = 0;
+        this.lastTime = performance.now();
         
         // 黑洞相关属性
         this.blackHole = null;
@@ -200,10 +311,15 @@
         this.consumedStarsCount = 0;
         this.blackHoleSize = 10;
         this.targetSize = 10;
+        this.blackHoleCount = 0;
+        
+        // 统计元素
+        this.starCountEl = document.getElementById('starCount');
+        this.blackHoleCountEl = document.getElementById('blackHoleCount');
         
         this.init();
         this.bindEvents();
-        this.animate();
+        this.animate(performance.now());
       }
 
       init() {
@@ -213,6 +329,8 @@
         for (let i = 0; i < this.numStars; i++) {
           this.stars.push(this.createStar());
         }
+        
+        this.updateStats();
       }
 
       createStar() {
@@ -241,7 +359,9 @@
           mouseOffsetY: 0,
           size: size,
           active: true,
-          attracted: false
+          attracted: false,
+          // 为星星添加颜色变化
+          color: `rgba(${Math.random() > 0.8 ? '255, 223, 186' : '255, 255, 255'}, ${Math.random() * 0.5 + 0.5})`
         };
       }
 
@@ -283,9 +403,34 @@
             this.handleResize();
           }, 250);
         });
+
+        // 添加触摸事件支持
+        document.addEventListener('touchmove', (e) => {
+          if (e.touches.length > 0) {
+            this.mouse.lastX = this.mouse.x;
+            this.mouse.lastY = this.mouse.y;
+            this.mouse.x = e.touches[0].clientX;
+            this.mouse.y = e.touches[0].clientY;
+            this.mouseInPage = true;
+            
+            // 防止触摸时页面滚动
+            if (this.blackHoleActive) {
+              e.preventDefault();
+            }
+          }
+        }, { passive: false });
+        
+        document.addEventListener('touchend', () => {
+          setTimeout(() => {
+            this.resetBlackHole();
+          }, 1000);
+        });
       }
 
       handleResize() {
+        // 调整星星数量
+        this.numStars = window.innerWidth < 600 ? 200 : 400;
+        
         const margin = 300;
         this.stars.forEach(star => {
           star.originalX = Math.random() * (window.innerWidth + margin * 2) - margin;
@@ -295,7 +440,30 @@
           star.mouseOffsetX = 0;
           star.mouseOffsetY = 0;
         });
+        
+        // 如果星星数量需要调整
+        if (this.stars.length < this.numStars) {
+          // 添加更多星星
+          for (let i = this.stars.length; i < this.numStars; i++) {
+            this.stars.push(this.createStar());
+          }
+        } else if (this.stars.length > this.numStars) {
+          // 移除多余的星星
+          for (let i = this.stars.length - 1; i >= this.numStars; i--) {
+            this.container.removeChild(this.stars[i].element);
+            this.stars.pop();
+          }
+        }
+        
         this.resetBlackHole();
+        this.updateStats();
+      }
+
+      // 更新统计信息
+      updateStats() {
+        const activeStars = this.stars.filter(star => star.active).length;
+        this.starCountEl.textContent = activeStars;
+        this.blackHoleCountEl.textContent = this.blackHoleCount;
       }
 
       // 重置星星到原始位置
@@ -330,11 +498,24 @@
         
         this.blackHoleActive = true;
         this.consumedStarsCount = this.attractedStars.size;
+        this.blackHoleCount++;
+        this.updateStats();
         
-        // 隐藏被吸引的星星
+        // 更优雅的星星消失效果
         this.attractedStars.forEach(starIndex => {
-          this.stars[starIndex].element.style.opacity = 0;
-          this.stars[starIndex].active = false;
+          const star = this.stars[starIndex];
+          // 添加动画使星星流向黑洞中心而不是突然消失
+          const dx = this.mouse.x - (star.rotatedX + star.mouseOffsetX);
+          const dy = this.mouse.y - (star.rotatedY + star.mouseOffsetY);
+          const angle = Math.atan2(dy, dx);
+          
+          star.element.style.transition = 'all 0.5s ease-in';
+          star.element.style.transform = `translate(${dx}px, ${dy}px) scale(0.1)`;
+          star.element.style.opacity = 0;
+          
+          setTimeout(() => {
+            star.active = false;
+          }, 500);
         });
       }
 
@@ -363,28 +544,110 @@
         
         if (this.blackHoleActive) {
           if (this.blackHole) {
-            this.container.removeChild(this.blackHole);
-            this.blackHole = null;
+            // 添加黑洞消失的动画
+            this.blackHole.style.transition = 'all 0.5s ease-out';
+            this.blackHole.style.transform = 'scale(0.1)';
+            this.blackHole.style.opacity = '0';
+            
+            setTimeout(() => {
+              if (this.blackHole && this.blackHole.parentNode) {
+                this.container.removeChild(this.blackHole);
+              }
+              this.blackHole = null;
+            }, 500);
           }
           
-          // 恢复所有星星
-          this.stars.forEach(star => {
-            star.active = true;
-            star.attracted = false;
-            star.element.style.opacity = 0.8;
-          });
+          // 逐渐重新生成新的星星
+          this.regenerateStars();
           
           this.blackHoleActive = false;
           this.attractedStars.clear();
           this.consumedStarsCount = 0;
           this.blackHoleSize = 10;
           this.targetSize = 10;
+          
+          this.updateStats();
+        }
+      }
+
+      // 重新生成被黑洞吞噬的星星
+      regenerateStars() {
+        const inactiveCount = this.stars.filter(star => !star.active).length;
+        
+        // 每200ms生成一颗新星星，直到恢复数量
+        if (inactiveCount > 0) {
+          let regenerated = 0;
+          
+          const regenerateInterval = setInterval(() => {
+            // 找到一个不活跃的星星并重新激活它
+            for (let i = 0; i < this.stars.length; i++) {
+              if (!this.stars[i].active) {
+                const star = this.stars[i];
+                const margin = 300;
+                
+                // 在屏幕边缘生成新星星
+                const side = Math.floor(Math.random() * 4); // 0:上, 1:右, 2:下, 3:左
+                let x, y;
+                
+                switch(side) {
+                  case 0: // 上
+                    x = Math.random() * window.innerWidth;
+                    y = -margin;
+                    break;
+                  case 1: // 右
+                    x = window.innerWidth + margin;
+                    y = Math.random() * window.innerHeight;
+                    break;
+                  case 2: // 下
+                    x = Math.random() * window.innerWidth;
+                    y = window.innerHeight + margin;
+                    break;
+                  case 3: // 左
+                    x = -margin;
+                    y = Math.random() * window.innerHeight;
+                    break;
+                }
+                
+                star.originalX = x;
+                star.originalY = y;
+                star.rotatedX = x;
+                star.rotatedY = y;
+                star.mouseOffsetX = 0;
+                star.mouseOffsetY = 0;
+                star.active = true;
+                star.attracted = false;
+                
+                // 重置星星样式
+                star.element.style.transition = 'none';
+                star.element.style.transform = 'none';
+                star.element.style.opacity = '0';
+                
+                // 淡入效果
+                setTimeout(() => {
+                  star.element.style.transition = 'opacity 1s ease-in';
+                  star.element.style.opacity = '0.8';
+                }, 10);
+                
+                regenerated++;
+                this.updateStats();
+                break;
+              }
+            }
+            
+            // 如果所有星星都已再生或已达到目标数量，停止计时器
+            if (regenerated >= inactiveCount || regenerated >= 20) {
+              clearInterval(regenerateInterval);
+            }
+          }, 200);
         }
       }
 
       animate = (currentTime) => {
         try {
-          if (currentTime - this.lastTime < 16) {
+          const delta = currentTime - this.lastTime;
+          
+          // 限制帧率为约60fps
+          if (delta < 16) {
             this.animationId = requestAnimationFrame(this.animate);
             return;
           }
@@ -414,6 +677,9 @@
               
               star.element.style.left = finalX + 'px';
               star.element.style.top = finalY + 'px';
+              
+              // 设置星星颜色
+              star.element.style.background = star.color;
             });
             
             this.animationId = requestAnimationFrame(this.animate);
@@ -454,10 +720,27 @@
               star.mouseOffsetX += pullX;
               star.mouseOffsetY += pullY;
               
+              // 添加旋转效果
+              const angle = Math.atan2(dy, dx);
+              const spiralFactor = Math.max(0, (blackHoleRadius - distance) / blackHoleRadius * 0.1);
+              const spiralX = -Math.sin(angle) * spiralFactor * distance;
+              const spiralY = Math.cos(angle) * spiralFactor * distance;
+              
+              star.mouseOffsetX += spiralX;
+              star.mouseOffsetY += spiralY;
+              
               // 检查是否被黑洞吞噬
               if (distance < this.blackHoleSize / 2) {
-                star.active = false;
-                star.element.style.opacity = 0;
+                // 平滑过渡到黑洞中心
+                star.element.style.transition = 'all 0.3s ease-in';
+                star.element.style.transform = 'scale(0.1)';
+                star.element.style.opacity = '0';
+                
+                setTimeout(() => {
+                  star.active = false;
+                  this.updateStats();
+                }, 300);
+                
                 this.consumedStarsCount++;
               }
             } else if (distance < 150) {
@@ -548,10 +831,53 @@
           this.contentEl.innerHTML = marked.parse(mdContent);
           this.contentEl.classList.remove('loading');
           
+          // 在内容加载后，为链接添加平滑过渡效果
+          this.enhanceContent();
+          
         } catch (error) {
           console.error('内容加载失败:', error);
           this.showError(error);
         }
+      }
+
+      enhanceContent() {
+        // 为所有链接添加目标和过渡效果
+        const links = this.contentEl.querySelectorAll('a');
+        links.forEach(link => {
+          // 检查是否是外部链接
+          if (link.hostname !== window.location.hostname && link.hostname !== '') {
+            link.setAttribute('target', '_blank');
+            link.setAttribute('rel', 'noopener noreferrer');
+          }
+          
+          // 添加点击特效
+          link.addEventListener('click', function(e) {
+            if (this.hostname === window.location.hostname) {
+              e.preventDefault();
+              const href = this.getAttribute('href');
+              
+              // 添加页面过渡效果
+              document.body.style.opacity = '0';
+              document.body.style.transition = 'opacity 0.3s ease';
+              
+              setTimeout(() => {
+                window.location.href = href;
+              }, 300);
+            }
+          });
+        });
+        
+        // 为图片添加懒加载和淡入效果
+        const images = this.contentEl.querySelectorAll('img');
+        images.forEach(img => {
+          img.setAttribute('loading', 'lazy');
+          img.style.opacity = '0';
+          img.style.transition = 'opacity 0.5s ease';
+          
+          img.onload = () => {
+            img.style.opacity = '1';
+          };
+        });
       }
 
       showError(error) {
@@ -576,17 +902,37 @@
               <summary>错误详情</summary>
               <pre>${error.message}</pre>
             </details>
+            <br>
+            <button id="retryBtn" class="retry-button">重试加载</button>
           </div>
         `;
+        
+        // 添加重试按钮功能
+        const retryBtn = document.getElementById('retryBtn');
+        if (retryBtn) {
+          retryBtn.addEventListener('click', () => {
+            this.contentEl.classList.add('loading');
+            this.contentEl.classList.remove('error');
+            this.contentEl.innerHTML = '正在加载内容...';
+            setTimeout(() => this.loadContent(), 500);
+          });
+        }
       }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       try {
-        new StarField();
-        new ContentLoader();
+        window.starField = new StarField();
+        window.contentLoader = new ContentLoader();
       } catch (error) {
         console.error('应用初始化失败:', error);
+        document.body.innerHTML = `
+          <div class="error" style="margin: 20% auto; max-width: 500px; text-align: center;">
+            <h2>应用加载失败</h2>
+            <p>${error.message}</p>
+            <button onclick="location.reload()">重新加载页面</button>
+          </div>
+        `;
       }
     });
   </script>
