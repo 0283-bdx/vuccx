@@ -23,7 +23,7 @@
   <div id="content">正在加载内容...</div>
 
   <script>
-    fetch('基础内容.md')
+    fetch('a01.md')
       .then(res => res.text())
       .then(md => {
         document.getElementById('content').innerHTML = marked.parse(md);
