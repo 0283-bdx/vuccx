@@ -103,7 +103,7 @@
       constructor() {
         this.container = document.getElementById('starfield');
         this.stars = [];
-        this.numStars = 400; // 固定数量，保持足够的星星
+        this.numStars = 400;
         this.mouse = { x: 0, y: 0 };
         this.animationId = null;
         this.lastTime = 0;
@@ -134,18 +134,19 @@
         const x = Math.random() * (window.innerWidth + margin * 2) - margin;
         const y = Math.random() * (window.innerHeight + margin * 2) - margin;
         
-        star.style.left = x + 'px';
-        star.style.top = y + 'px';
         star.style.animationDelay = Math.random() * 3 + 's';
         
         this.container.appendChild(star);
         
         return {
           element: star,
-          x: x,
-          y: y,
           originalX: x,
           originalY: y,
+          // 分离旋转位置和鼠标吸引位置
+          rotatedX: x,
+          rotatedY: y,
+          mouseOffsetX: 0,
+          mouseOffsetY: 0,
           size: size
         };
       }
@@ -170,8 +171,10 @@
         this.stars.forEach(star => {
           star.originalX = Math.random() * (window.innerWidth + margin * 2) - margin;
           star.originalY = Math.random() * (window.innerHeight + margin * 2) - margin;
-          star.x = star.originalX;
-          star.y = star.originalY;
+          star.rotatedX = star.originalX;
+          star.rotatedY = star.originalY;
+          star.mouseOffsetX = 0;
+          star.mouseOffsetY = 0;
         });
       }
 
@@ -186,12 +189,18 @@
           
           const centerX = window.innerWidth / 2;
           const centerY = window.innerHeight / 2;
-          const rotation = currentTime * 0.00005;
+          const rotation = currentTime * 0.0001;
           
           this.stars.forEach(star => {
-            // 正确的鼠标吸引效果：星星向鼠标位置移动
-            const dx = this.mouse.x - star.x;
-            const dy = this.mouse.y - star.y;
+            // 1. 首先计算旋转后的位置（基于原始位置）
+            const relativeX = star.originalX - centerX;
+            const relativeY = star.originalY - centerY;
+            star.rotatedX = centerX + (relativeX * Math.cos(rotation) - relativeY * Math.sin(rotation));
+            star.rotatedY = centerY + (relativeX * Math.sin(rotation) + relativeY * Math.cos(rotation));
+
+            // 2. 然后计算鼠标吸引效果（基于旋转后的位置）
+            const dx = this.mouse.x - (star.rotatedX + star.mouseOffsetX);
+            const dy = this.mouse.y - (star.rotatedY + star.mouseOffsetY);
             const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (distance < 150) {
@@ -199,22 +208,20 @@
               const pullX = dx * force * 0.1;
               const pullY = dy * force * 0.1;
               
-              star.x += pullX;
-              star.y += pullY;
+              star.mouseOffsetX += pullX;
+              star.mouseOffsetY += pullY;
             } else {
-              // 缓慢回到原位
-              star.x += (star.originalX - star.x) * 0.02;
-              star.y += (star.originalY - star.y) * 0.02;
+              // 缓慢回到原位（偏移量归零）
+              star.mouseOffsetX *= 0.98;
+              star.mouseOffsetY *= 0.98;
             }
 
-            // 旋转效果
-            const relativeX = star.x - centerX;
-            const relativeY = star.y - centerY;
-            const rotatedX = relativeX * Math.cos(rotation) - relativeY * Math.sin(rotation);
-            const rotatedY = relativeX * Math.sin(rotation) + relativeY * Math.cos(rotation);
+            // 3. 最终位置 = 旋转位置 + 鼠标偏移
+            const finalX = star.rotatedX + star.mouseOffsetX;
+            const finalY = star.rotatedY + star.mouseOffsetY;
 
-            star.element.style.left = (centerX + rotatedX) + 'px';
-            star.element.style.top = (centerY + rotatedY) + 'px';
+            star.element.style.left = finalX + 'px';
+            star.element.style.top = finalY + 'px';
           });
           
           this.animationId = requestAnimationFrame(this.animate);
