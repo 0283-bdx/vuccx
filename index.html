@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Markdown 渲染页面</title>
+  <style>
+    body {
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 1rem;
+      font-family: system-ui, sans-serif;
+      line-height: 1.6;
+    }
+    pre { background: #f5f5f5; padding: 1rem; overflow-x: auto; }
+    code { background: #eee; padding: 0.2rem 0.4rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>📄 Markdown 页面展示</h1>
+  <div id="content">加载中...</div>
+
+  <!-- 引入 marked.js -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    fetch('README.md')
+      .then(res => res.text())
+      .then(md => {
+        document.getElementById('content').innerHTML = marked.parse(md);
+      })
+      .catch(err => {
+        document.getElementById('content').innerHTML = '❌ 无法加载 Markdown 文件。';
+        console.error(err);
+      });
+  </script>
+</body>
+</html>
