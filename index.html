@@ -92,7 +92,7 @@
     // 星空背景脚本
     const starfield = document.getElementById('starfield');
     const stars = [];
-    const numStars = 200;
+    const numStars = 300;
     let mouseX = 0;
     let mouseY = 0;
 
@@ -105,14 +105,10 @@
       star.style.width = size + 'px';
       star.style.height = size + 'px';
       
-      // 扩大星空范围，确保旋转时不会出现空白
-      const expandRatio = 1.5; // 扩大50%的范围
-      const expandedWidth = window.innerWidth * expandRatio;
-      const expandedHeight = window.innerHeight * expandRatio;
-
-      star.style.left = (Math.random() * expandedWidth - (expandedWidth - window.innerWidth) / 2) + 'px';
-      star.style.top = (Math.random() * expandedHeight - (expandedHeight - window.innerHeight) / 2) + 'px';
-
+      // 在屏幕外也生成星星，防止旋转时出现空白
+      const margin = 200; // 额外的边距
+      star.style.left = (Math.random() * (window.innerWidth + margin * 2) - margin) + 'px';
+      star.style.top = (Math.random() * (window.innerHeight + margin * 2) - margin) + 'px';
 
       // 随机化闪烁动画延迟
       star.style.animationDelay = Math.random() * 3 + 's';
@@ -164,7 +160,7 @@
         
         // 星星缓慢旋转
         // 整个星空围绕屏幕中心旋转
-        const rotation = Date.now() * 0.002; // 调整这个值来控制旋转速度
+        const rotation = Date.now() * 0.0005; // 调整这个值来控制旋转速度
         const centerX = window.innerWidth / 2;
         const centerY = window.innerHeight / 2;
 
@@ -188,15 +184,16 @@
 
     // 窗口大小调整时重新定位星星
     window.addEventListener('resize', () => {
+      const margin = 200;
       stars.forEach(star => {
-        if (star.originalX > window.innerWidth || star.originalY > window.innerHeight) {
-          star.originalX = Math.random() * window.innerWidth;
-          star.originalY = Math.random() * window.innerHeight;
-          star.x = star.originalX;
-          star.y = star.originalY;
-        }
+        // 重新随机分布星星
+        star.originalX = Math.random() * (window.innerWidth + margin * 2) - margin;
+        star.originalY = Math.random() * (window.innerHeight + margin * 2) - margin;
+        star.x = star.originalX;
+        star.y = star.originalY;
       });
     });
+
 
     // 原有的 Markdown 加载脚本
     fetch('a01.md')
