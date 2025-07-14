@@ -45,17 +45,81 @@
       position: absolute;
       border-radius: 50%;
       background: #000;
-      box-shadow: 0 0 20px 5px rgba(75, 0, 130, 0.8), 
-                  0 0 40px 10px rgba(148, 0, 211, 0.5),
-                  0 0 60px 15px rgba(75, 0, 130, 0.3);
       z-index: 1;
-      transition: transform 0.3s ease-out;
-      animation: rotate 5s infinite linear;
+      transition: all 0.3s ease-out;
+      animation: blackHolePulse 2s infinite ease-in-out;
     }
     
-    @keyframes rotate {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
+    .black-hole::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 120%;
+      height: 120%;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        rgba(75, 0, 130, 0.8),
+        rgba(148, 0, 211, 0.6),
+        rgba(75, 0, 130, 0.4),
+        rgba(148, 0, 211, 0.8)
+      );
+      transform: translate(-50%, -50%) rotate(0deg);
+      animation: rotateGlow 3s infinite linear;
+      filter: blur(5px);
+      z-index: -1;
+    }
+    
+    .black-hole::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 150%;
+      height: 150%;
+      border-radius: 50%;
+      background: radial-gradient(
+        circle,
+        transparent 30%,
+        rgba(75, 0, 130, 0.3) 60%,
+        rgba(148, 0, 211, 0.2) 100%
+      );
+      transform: translate(-50%, -50%);
+      animation: pulseGlow 2s infinite ease-in-out;
+      z-index: -2;
+    }
+    
+    @keyframes rotateGlow {
+      from { transform: translate(-50%, -50%) rotate(0deg); }
+      to { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    
+    @keyframes blackHolePulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+    
+    @keyframes pulseGlow {
+      0%, 100% { 
+        opacity: 0.6;
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% { 
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+    }
+    
+    @keyframes blackHoleGrow {
+      0% { 
+        width: 10px;
+        height: 10px;
+        opacity: 0.5;
+      }
+      100% { 
+        opacity: 1;
+      }
     }
     
     #content {
@@ -123,6 +187,7 @@
         this.stars = [];
         this.numStars = 400;
         this.mouse = { x: 0, y: 0, lastX: 0, lastY: 0 };
+        this.mouseInPage = true;
         this.animationId = null;
         this.lastTime = 0;
         
@@ -133,6 +198,8 @@
         this.attractedStars = new Set();
         this.hoverStartTime = 0;
         this.consumedStarsCount = 0;
+        this.blackHoleSize = 10;
+        this.targetSize = 10;
         
         this.init();
         this.bindEvents();
@@ -184,6 +251,7 @@
           this.mouse.lastY = this.mouse.y;
           this.mouse.x = e.clientX;
           this.mouse.y = e.clientY;
+          this.mouseInPage = true;
           
           // 检测鼠标是否移动了足够的距离
           const mouseMoved = Math.sqrt(
@@ -194,6 +262,18 @@
           if (mouseMoved) {
             this.resetBlackHole();
           }
+        });
+
+        // 处理鼠标离开页面
+        document.addEventListener('mouseleave', () => {
+          this.mouseInPage = false;
+          this.resetBlackHole();
+          this.resetStarsToOriginal();
+        });
+
+        // 处理鼠标重新进入页面
+        document.addEventListener('mouseenter', () => {
+          this.mouseInPage = true;
         });
 
         let resizeTimeout;
@@ -218,6 +298,15 @@
         this.resetBlackHole();
       }
 
+      // 重置星星到原始位置
+      resetStarsToOriginal() {
+        this.stars.forEach(star => {
+          star.mouseOffsetX = 0;
+          star.mouseOffsetY = 0;
+          star.attracted = false;
+        });
+      }
+
       // 创建黑洞
       createBlackHole() {
         if (this.blackHole) {
@@ -227,22 +316,17 @@
         this.blackHole = document.createElement('div');
         this.blackHole.className = 'black-hole';
         
-        // 初始大小（基于吸引的星星数量）
-        const initialSize = Math.max(20, Math.min(100, this.attractedStars.size * 5));
-        this.blackHole.style.width = '10px';
-        this.blackHole.style.height = '10px';
-        this.blackHole.style.left = (this.mouse.x - 5) + 'px';
-        this.blackHole.style.top = (this.mouse.y - 5) + 'px';
+        // 初始大小
+        this.blackHoleSize = 10;
+        this.targetSize = Math.max(30, Math.min(150, this.attractedStars.size * 8));
+        
+        this.blackHole.style.width = this.blackHoleSize + 'px';
+        this.blackHole.style.height = this.blackHoleSize + 'px';
+        this.blackHole.style.left = (this.mouse.x - this.blackHoleSize/2) + 'px';
+        this.blackHole.style.top = (this.mouse.y - this.blackHoleSize/2) + 'px';
+        this.blackHole.style.animation = 'blackHoleGrow 0.5s ease-out forwards, blackHolePulse 2s infinite ease-in-out 0.5s';
         
         this.container.appendChild(this.blackHole);
-        
-        // 黑洞生长动画
-        setTimeout(() => {
-          this.blackHole.style.width = initialSize + 'px';
-          this.blackHole.style.height = initialSize + 'px';
-          this.blackHole.style.left = (this.mouse.x - initialSize/2) + 'px';
-          this.blackHole.style.top = (this.mouse.y - initialSize/2) + 'px';
-        }, 50);
         
         this.blackHoleActive = true;
         this.consumedStarsCount = this.attractedStars.size;
@@ -254,15 +338,22 @@
         });
       }
 
-      // 更新黑洞大小
+      // 更新黑洞大小（连续动画）
       updateBlackHoleSize() {
         if (!this.blackHole || !this.blackHoleActive) return;
         
-        const newSize = Math.max(20, Math.min(300, this.consumedStarsCount * 5));
-        this.blackHole.style.width = newSize + 'px';
-        this.blackHole.style.height = newSize + 'px';
-        this.blackHole.style.left = (this.mouse.x - newSize/2) + 'px';
-        this.blackHole.style.top = (this.mouse.y - newSize/2) + 'px';
+        this.targetSize = Math.max(30, Math.min(300, this.consumedStarsCount * 8));
+        
+        // 平滑过渡到目标大小
+        const sizeDiff = this.targetSize - this.blackHoleSize;
+        if (Math.abs(sizeDiff) > 1) {
+          this.blackHoleSize += sizeDiff * 0.1;
+          
+          this.blackHole.style.width = this.blackHoleSize + 'px';
+          this.blackHole.style.height = this.blackHoleSize + 'px';
+          this.blackHole.style.left = (this.mouse.x - this.blackHoleSize/2) + 'px';
+          this.blackHole.style.top = (this.mouse.y - this.blackHoleSize/2) + 'px';
+        }
       }
 
       // 重置黑洞状态
@@ -286,6 +377,8 @@
           this.blackHoleActive = false;
           this.attractedStars.clear();
           this.consumedStarsCount = 0;
+          this.blackHoleSize = 10;
+          this.targetSize = 10;
         }
       }
 
@@ -297,6 +390,35 @@
           }
           
           this.lastTime = currentTime;
+          
+          // 如果鼠标不在页面内，只进行基本的旋转动画
+          if (!this.mouseInPage) {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            const rotation = currentTime * 0.0001;
+            
+            this.stars.forEach(star => {
+              if (!star.active) return;
+              
+              const relativeX = star.originalX - centerX;
+              const relativeY = star.originalY - centerY;
+              star.rotatedX = centerX + (relativeX * Math.cos(rotation) - relativeY * Math.sin(rotation));
+              star.rotatedY = centerY + (relativeX * Math.sin(rotation) + relativeY * Math.cos(rotation));
+              
+              // 缓慢回到原位
+              star.mouseOffsetX *= 0.95;
+              star.mouseOffsetY *= 0.95;
+              
+              const finalX = star.rotatedX + star.mouseOffsetX;
+              const finalY = star.rotatedY + star.mouseOffsetY;
+              
+              star.element.style.left = finalX + 'px';
+              star.element.style.top = finalY + 'px';
+            });
+            
+            this.animationId = requestAnimationFrame(this.animate);
+            return;
+          }
           
           const centerX = window.innerWidth / 2;
           const centerY = window.innerHeight / 2;
@@ -321,8 +443,7 @@
             const distance = Math.sqrt(dx * dx + dy * dy);
             
             // 黑洞吸引范围
-            const blackHoleRadius = this.blackHoleActive ? 
-              parseInt(this.blackHole.style.width) / 2 + 100 : 0;
+            const blackHoleRadius = this.blackHoleActive ? this.blackHoleSize / 2 + 100 : 0;
             
             if (this.blackHoleActive && distance < blackHoleRadius) {
               // 黑洞吸引效果
@@ -334,11 +455,10 @@
               star.mouseOffsetY += pullY;
               
               // 检查是否被黑洞吞噬
-              if (distance < parseInt(this.blackHole.style.width) / 2) {
+              if (distance < this.blackHoleSize / 2) {
                 star.active = false;
                 star.element.style.opacity = 0;
                 this.consumedStarsCount++;
-                this.updateBlackHoleSize();
               }
             } else if (distance < 150) {
               // 普通鼠标吸引效果
@@ -381,11 +501,9 @@
             this.hoverStartTime = 0;
           }
           
-          // 如果黑洞存在，更新位置
+          // 更新黑洞大小和位置
           if (this.blackHoleActive && this.blackHole) {
-            const size = parseInt(this.blackHole.style.width);
-            this.blackHole.style.left = (this.mouse.x - size/2) + 'px';
-            this.blackHole.style.top = (this.mouse.y - size/2) + 'px';
+            this.updateBlackHoleSize();
           }
           
           this.animationId = requestAnimationFrame(this.animate);
