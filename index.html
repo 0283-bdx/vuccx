@@ -268,7 +268,7 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
       
       // 逐渐增加大小
       if (currentSize < targetSize) {
-        currentSize += Math.max(1, (targetSize - currentSize) * 0.1); // 平滑过渡
+        currentSize += Math.max(1, (targetSize - currentSize) * 0.05); // 平滑过渡
         
         this.blackHole.style.width = currentSize + 'px';
         this.blackHole.style.height = currentSize + 'px';
