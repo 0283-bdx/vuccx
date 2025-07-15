@@ -306,7 +306,7 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
   updateBlackHoleSize() {
     if (!this.blackHole || !this.blackHoleActive) return;
     
-    const newSize = Math.max(20, Math.min(300, this.consumedStarsCount * 5));
+    const newSize = Math.max(20, Math.min(300, this.consumedStarsCount * 2));
     // 使用CSS过渡来平滑变化大小
     this.blackHole.style.width = newSize + 'px';
     this.blackHole.style.height = newSize + 'px';
@@ -403,17 +403,6 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
               this.consumedStarsCount++;
               this.updateBlackHoleSize();
             } 
-            // 当星星进入黑洞但尚未到达中心时，添加动画效果
-            else if (distance < blackHoleRadius) {
-              // 减少星星的不透明度，但不完全消失
-              const opacityFactor = distance / blackHoleRadius; // 越靠近中心越透明
-              star.element.style.opacity = Math.max(0.1, opacityFactor * 0.8);
-              
-              // 可选：添加视觉效果，如使星星变小
-              const sizeFactor = Math.max(0.5, opacityFactor);
-              star.element.style.width = (star.size * sizeFactor) + 'px';
-              star.element.style.height = (star.size * sizeFactor) + 'px';
-            }
           } else if (distance < 150) {
             // 普通鼠标吸引效果
             const force = (150 - distance) / 150;
