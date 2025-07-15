@@ -251,7 +251,7 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
     // 初始大小
     const initialSize = 10;
     // 目标大小（基于吸引的星星数量）
-    const targetSize = Math.max(20, Math.min(100, this.attractedStars.size * 5));
+    const targetSize = Math.max(20, Math.min(100, this.attractedStars.size * 3));
     
     this.blackHole.style.width = initialSize + 'px';
     this.blackHole.style.height = initialSize + 'px';
@@ -278,7 +278,7 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
       
       // 逐渐增加大小
       if (currentSize < targetSize) {
-        currentSize += Math.max(1, (targetSize - currentSize) * 0.05); // 平滑过渡
+        currentSize += Math.max(1, (targetSize - currentSize) * 0.02); // 平滑过渡
         
         this.blackHole.style.width = currentSize + 'px';
         this.blackHole.style.height = currentSize + 'px';
@@ -330,6 +330,9 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
         star.active = true;
         star.attracted = false;
         star.element.style.opacity = 0.8;
+        // 恢复原始大小
+        star.element.style.width = star.size + 'px';
+        star.element.style.height = star.size + 'px';
       });
       
       this.blackHoleActive = false;
@@ -376,20 +379,40 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
             parseInt(this.blackHole.style.width) / 2 + 100 : 0;
           
           if (this.blackHoleActive && distance < blackHoleRadius) {
-            // 黑洞吸引效果
-            const force = (blackHoleRadius - distance) / blackHoleRadius;
-            const pullX = dx * force * 0.2;
-            const pullY = dy * force * 0.2;
-            
+            // 修改吸引力公式，使星星更强烈地被吸向中心
+            // 越接近中心吸引力越强
+            const blackHoleWidth = parseInt(this.blackHole.style.width);
+            const blackHoleRadius = blackHoleWidth / 2;
+  
+            // 使用反比例公式增强中心吸引力
+            const centerFactor = 1 + (blackHoleRadius / Math.max(distance, 10)) * 0.5;
+            const force = (blackHoleRadius - distance) / blackHoleRadius * centerFactor;
+  
+            // 增加吸引力系数，从0.2增加到0.3
+            const pullX = dx * force * 0.3;
+            const pullY = dy * force * 0.3;
+  
             star.mouseOffsetX += pullX;
             star.mouseOffsetY += pullY;
-            
-            // 检查是否被黑洞吞噬
-            if (distance < parseInt(this.blackHole.style.width) / 2) {
+  
+            // 修改消失逻辑：只有当星星接近黑洞中心时才消失
+            // 从边缘(width/2)改为中心区域(width/6)
+            if (distance < blackHoleWidth / 6) {
               star.active = false;
               star.element.style.opacity = 0;
               this.consumedStarsCount++;
               this.updateBlackHoleSize();
+            } 
+            // 当星星进入黑洞但尚未到达中心时，添加动画效果
+            else if (distance < blackHoleRadius) {
+              // 减少星星的不透明度，但不完全消失
+              const opacityFactor = distance / blackHoleRadius; // 越靠近中心越透明
+              star.element.style.opacity = Math.max(0.1, opacityFactor * 0.8);
+              
+              // 可选：添加视觉效果，如使星星变小
+              const sizeFactor = Math.max(0.5, opacityFactor);
+              star.element.style.width = (star.size * sizeFactor) + 'px';
+              star.element.style.height = (star.size * sizeFactor) + 'px';
             }
           } else if (distance < 150) {
             // 普通鼠标吸引效果
@@ -428,10 +451,10 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
       });
       
       // 检测是否满足黑洞生成条件 - 只在鼠标在页面内时检测
-      if (this.mouseInPage && !this.blackHoleActive && attractedCount >= 5) {
+      if (this.mouseInPage && !this.blackHoleActive && attractedCount >= 7) {
         if (this.hoverStartTime === 0) {
           this.hoverStartTime = currentTime;
-        } else if (currentTime - this.hoverStartTime > 3000) { // 3秒后触发
+        } else if (currentTime - this.hoverStartTime > 5000) { // 3秒后触发
           this.createBlackHole();
         }
       } else if (!this.blackHoleActive) {
