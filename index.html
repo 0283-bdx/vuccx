@@ -292,12 +292,6 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
     this.blackHoleActive = true;
     this.consumedStarsCount = this.attractedStars.size;
     
-    // 隐藏被吸引的星星
-    this.attractedStars.forEach(starIndex => {
-      this.stars[starIndex].element.style.opacity = 0;
-      this.stars[starIndex].active = false;
-    });
-    
     // 启动黑洞增长动画
     requestAnimationFrame(growBlackHole);
   }
@@ -306,7 +300,7 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
   updateBlackHoleSize() {
     if (!this.blackHole || !this.blackHoleActive) return;
     
-    const newSize = Math.max(20, Math.min(300, this.consumedStarsCount * 2));
+    const newSize = Math.max(20, Math.min(300, this.consumedStarsCount * 3));
     // 使用CSS过渡来平滑变化大小
     this.blackHole.style.width = newSize + 'px';
     this.blackHole.style.height = newSize + 'px';
