@@ -391,7 +391,7 @@ this.mouseInPage = true; // 添加鼠标是否在页面内的标志
   
             // 修改消失逻辑：只有当星星接近黑洞中心时才消失
             // 从边缘(width/2)改为中心区域(width/6)
-            if (distance < blackHoleWidth / 6) {
+            if (distance < blackHoleWidth / 2) {
               star.active = false;
               star.element.style.opacity = 0;
               this.consumedStarsCount++;
